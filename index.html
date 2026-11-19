@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dancing Bro</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%95%BA%3C/text%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet" />
+<style>
+  :root { --pink: #ff3fb4; --cyan: #2ff5e6; --yellow: #ffd23f; --ink: #07060c; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--ink); color: #fff; font-family: Rubik, system-ui, sans-serif; user-select: none; }
+  #app canvas { display: block; }
+  .hud { position: fixed; pointer-events: none; text-shadow: 0 2px 0 #000, 0 0 12px rgba(0,0,0,.8); }
+  #top { top: 14px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  #trackTitle { font-family: Bungee, sans-serif; font-size: 18px; color: var(--yellow); max-width: 60vw; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  #trackInfo, #calib { font-size: 12px; opacity: .85; margin-top: 4px; }
+  #controls { pointer-events: auto; display: flex; gap: 8px; align-items: center; }
+  button, select { font-family: Bungee, sans-serif; font-size: 12px; background: #15131f; color: #fff; border: 2px solid var(--cyan); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  button:hover { background: #24203a; }
+  button:disabled { opacity: .4; cursor: not-allowed; border-color: #666; }
+  #scorebox { text-align: right; }
+  #score { font-family: Bungee, sans-serif; font-size: 34px; color: #fff; }
+  #combo { font-size: 14px; color: var(--cyan); min-height: 18px; }
+  #hype { width: 220px; height: 12px; border: 2px solid #000; background: #1a1726; border-radius: 6px; margin-top: 6px; margin-left: auto; overflow: hidden; }
+  #hypeFill { height: 100%; width: 10%; background: linear-gradient(90deg, var(--cyan), var(--pink), var(--yellow)); transition: width .15s; }
+  #hypeLabel { font-family: Bungee, sans-serif; font-size: 10px; letter-spacing: 2px; margin-top: 2px; }
+  #judge { top: 22%; left: 0; right: 0; text-align: center; font-family: Bungee, sans-serif; font-size: 44px; }
+  #judge small { display: block; font-family: Rubik, sans-serif; font-size: 13px; color: #fff; opacity: .8; }
+  #comboName { top: 32%; left: 0; right: 0; text-align: center; font-family: Bungee, sans-serif; font-size: 52px; color: var(--pink); -webkit-text-stroke: 2px #000; opacity: 0; }
+  #countdown { top: 12%; left: 0; right: 0; text-align: center; font-family: Bungee, sans-serif; font-size: 30px; color: var(--yellow); }
+  .pop { animation: pop .6s ease-out; }
+  #comboName.pop { animation: combo 1.6s ease-out; }
+  @keyframes pop { 0% { transform: scale(1.6); opacity: 0; } 15% { transform: scale(1); opacity: 1; } 100% { transform: scale(1); opacity: .9; } }
+  @keyframes combo { 0% { transform: scale(2.2) rotate(-6deg); opacity: 0; } 12% { transform: scale(1) rotate(-3deg); opacity: 1; } 75% { opacity: 1; } 100% { transform: scale(1.05) rotate(-3deg); opacity: 0; } }
+  #history { bottom: 92px; left: 0; right: 0; display: flex; justify-content: center; gap: 6px; }
+  #history span { font-family: Bungee, sans-serif; min-width: 34px; padding: 4px 8px; text-align: center; border: 2px solid var(--cyan); border-radius: 8px; background: rgba(10,8,20,.7); }
+  #help { bottom: 12px; left: 16px; right: 16px; font-size: 12px; opacity: .8; line-height: 1.6; }
+  #help b { color: var(--yellow); }
+  #status { top: 50%; left: 0; right: 0; text-align: center; font-family: Bungee, sans-serif; font-size: 22px; transition: opacity .3s; opacity: 0; }
+  #strip { position: fixed; left: 16px; right: 16px; bottom: 130px; height: 70px; width: calc(100% - 32px); background: rgba(5,4,10,.6); border: 1px solid #333; border-radius: 6px; display: none; }
+  #start { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 16px;
+    background: linear-gradient(rgba(7,6,12,.55), rgba(7,6,12,.85)), url(keyart.jpg) center/cover; transition: opacity .4s; z-index: 10; text-align: center; }
+  #start.hidden { opacity: 0; pointer-events: none; }
+  #start h1 { font-family: Bungee, sans-serif; font-size: clamp(40px, 9vw, 96px); margin: 0; color: var(--yellow); -webkit-text-stroke: 3px #000; text-shadow: 6px 6px 0 var(--pink), 10px 10px 0 #000; transform: rotate(-3deg); }
+  #start p { max-width: 640px; margin: 0; opacity: .9; }
+  #start .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  #start button { font-size: 16px; padding: 12px 18px; }
+  #radioNote { display: none; font-size: 12px; opacity: .75; max-width: 560px; }
+  @media (max-width: 720px) { #help { display: none; } #trackTitle { max-width: 50vw; } #score { font-size: 24px; } #hype { width: 140px; } }
+</style>
+  <script type="module" crossorigin src="./assets/index-BwSbYcCT.js"></script>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="top" class="hud">
+  <div>
+    <div id="trackTitle">DANCING BRO</div>
+    <div id="trackInfo">Pick a music source to start</div>
+    <div id="calib"></div>
+    <div id="controls" style="margin-top:8px">
+      <select id="station" title="JSR station"></select>
+      <button id="btnNext" title="Next radio track (N)">Next ▸</button>
+      <button id="btnLoad">Load track</button>
+    </div>
+  </div>
+  <div id="scorebox">
+    <div id="score">0</div>
+    <div id="combo"></div>
+    <div id="hype"><div id="hypeFill"></div></div>
+    <div id="hypeLabel">HYPE</div>
+  </div>
+</div>
+
+<div id="countdown" class="hud"></div>
+<div id="judge" class="hud"></div>
+<div id="comboName" class="hud"></div>
+<div id="status" class="hud"></div>
+<div id="history" class="hud"></div>
+<canvas id="strip"></canvas>
+<div id="help" class="hud">
+  <b>WASD</b> steps · <b>LMB</b> pop · <b>RMB</b> wave · <b>MMB</b> chest pop · <b>Scroll ↑/↓</b> spin / body wave · <b>Space</b> jump · <b>C</b> (hold) get low ·
+  hit them <b>on the beat</b> — the shrinking ring lands on each beat.<br />
+  Combos: <b>W S W S</b> Running Man · <b>A D A D</b> Shuffle · <b>L R L R</b> Pop'n'Lock · <b>W A S D</b> Helicopter · <b>C C Space</b> Back Flip · <b>↓ ↓ C</b> Air Freeze · <b>L R ↑ Space</b> Tornado · <b>M M M M</b> Headbanger<br />
+  Camera: <b>Q/E</b> rotate · <b>Shift+drag</b> orbit · <b>Shift+scroll</b> zoom · <b>M</b> metronome · <b>B</b> beat debug · <b>[ ]</b> latency offset · <b>T</b> shift beat ½
+</div>
+
+<div id="start">
+  <h1>DANCING BRO</h1>
+  <p>Land your moves on the beat. Any song works: the game finds the beat itself.</p>
+  <div class="row">
+    <button id="btnPractice">▶ Practice beat</button>
+    <button id="btnFile">♫ Load your track</button>
+    <button id="btnRadio">📻 JSR Radio</button>
+  </div>
+  <div id="radioNote">JSR Radio needs a CORS proxy on the hosted page (the MP3s have no CORS headers). Run locally with <code>npm run dev</code>, or open this page with <code>?proxy=https://your-worker.workers.dev</code>. You can also drop any MP3 onto the page.</div>
+</div>
+<input id="file" type="file" accept="audio/*" hidden />
+</body>
+</html>
